@@ -117,7 +117,6 @@ function checkFire() {
 function setup() {
 	createCanvas(400, 400);
 	gun = new gunObj(200);
-	initialScreenVar = new startScreen();
 	bullets = [new bulletObj(), new bulletObj(), new bulletObj(), new bulletObj(), new bulletObj()];
 	// initialize space invaders
 	var a = 100;
@@ -131,8 +130,14 @@ function setup() {
 		a = 100;
 		b += 20;
 	}
+	initialScreenVar = new startScreen();
+	initialScreenVar.setup();
 }
 function draw() {
+	if(initialScreenVar.wait){
+		initialScreenVar.draw();
+		return;
+	}
 	if (gameOver === false) {
 		background(0, 255, 217);
 		for (var i = 0; i < invaders.length; i++) {
@@ -163,4 +168,9 @@ function draw() {
 		textSize(40);
 		text("Game Over", 100, 200);
 	}
+}
+
+function keyPressed() {
+	initialScreenVar.wait = false;
+	// keyArray[keyCode] = 1;
 }
