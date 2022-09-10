@@ -1,17 +1,39 @@
+class ball {
+	constructor() {
+		this.x = 200;
+		this.y = random(200, 300);
+		this.dir = p5.Vector.random2D();
+		this.r = 6;
+	}
+	update() {
+		if (this.x + this.r > width || this.x - this.r < 0) {
+			this.dir.x *= -1;
+		}
+		if (this.y + this.r > height || this.y - this.r < 0) {
+			this.dir.y *= -1;
+		}
+		this.x += this.dir.x;
+		this.y += this.dir.y;
+		push();
+		stroke(255);
+		strokeWeight(10);
+		noFill();
+		circle(this.x, this.y, this.r / 2);
+		pop();
+	}
+}
+
 class invaderObj {
 	constructor(x, y) {
 		this.x = x;
 		this.y = y;
 		this.dead = 0;
 		this.bomb = 0;
+		this.invaderHeight = 70;
+		this.imgpos = int(random(4)) * this.invaderHeight;
 	}
 	draw() {
-		fill(38, 26, 26);
-		noStroke();
-		ellipse(this.x, this.y, 12, 5);
-		rect(this.x - 6, this.y, 12, 3);
-		triangle(this.x - 6, this.y + 3, this.x, this.y + 3, this.x - 6, this.y + 6);
-		triangle(this.x + 6, this.y + 3, this.x, this.y + 3, this.x + 6, this.y + 6);
+		image(spritesheet, this.x, this.y, 14, 14, 0, this.imgpos, spritesheet.width, this.invaderHeight);
 	}
 	///// EXPERIMENT /////
 	move() {
@@ -23,7 +45,7 @@ class invaderObj {
 			lowerAllInvaders();
 		}
 	}
-} // invaderObj
+}
 class gunObj {
 	constructor(x) {
 		this.x = x;
@@ -36,7 +58,7 @@ class gunObj {
 	move() {
 		this.x += (keyArray[RIGHT_ARROW] === 1) - (keyArray[LEFT_ARROW] === 1);
 	}
-} // gunObj
+}
 class bulletObj {
 	constructor() {
 		this.x = 0;
@@ -57,7 +79,7 @@ class bulletObj {
 			}
 		}
 	}
-} // bulletObj
+}
 class bombObj {
 	constructor() {
 		this.x = 0;
@@ -77,7 +99,7 @@ class bombObj {
 			}
 		}
 	}
-} // bombObj
+}
 var gameOver = false;
 var gun;
 var invaders = [];
@@ -88,6 +110,9 @@ var bulletIndex = 0;
 var bombs = [];
 var initialScreenVar;
 var currFrameCount = 0;
+var spritesheet;
+var ballin;
+
 var lowerAllInvaders = function () {
 	for (var i = 0; i < invaders.length; i++) {
 		invaders[i].y += 5;
@@ -95,6 +120,7 @@ var lowerAllInvaders = function () {
 };
 function keyPressed() {
 	keyArray[keyCode] = 1;
+	initialScreenVar.wait = false;
 }
 function keyReleased() {
 	keyArray[keyCode] = 0;
@@ -116,6 +142,7 @@ function checkFire() {
 }
 function setup() {
 	createCanvas(400, 400);
+	ballin = new ball();
 	gun = new gunObj(200);
 	bullets = [new bulletObj(), new bulletObj(), new bulletObj(), new bulletObj(), new bulletObj()];
 	// initialize space invaders
@@ -132,14 +159,16 @@ function setup() {
 	}
 	initialScreenVar = new startScreen();
 	initialScreenVar.setup();
+	spritesheet = loadImage("sheet.png");
 }
 function draw() {
-	if(initialScreenVar.wait){
+	if (initialScreenVar.wait) {
 		initialScreenVar.draw();
 		return;
 	}
+	background(0, 255, 217);
+	ballin.update();
 	if (gameOver === false) {
-		background(0, 255, 217);
 		for (var i = 0; i < invaders.length; i++) {
 			if (invaders[i].dead === 0) {
 				invaders[i].draw();
@@ -168,9 +197,4 @@ function draw() {
 		textSize(40);
 		text("Game Over", 100, 200);
 	}
-}
-
-function keyPressed() {
-	initialScreenVar.wait = false;
-	// keyArray[keyCode] = 1;
 }
