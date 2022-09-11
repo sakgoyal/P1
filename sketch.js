@@ -1,25 +1,54 @@
 class ball {
 	constructor() {
-		this.x = 200;
+		this.x = random(100, 300);
 		this.y = random(200, 300);
-		this.dir = p5.Vector.random2D();
-		this.r = 6;
+		this.color = [random(180), random(180), random(180)];
+		this.dir = p5.Vector.fromAngle(random(PI / 6, (5 * PI) / 6)).mult(1.6);
+		this.dir.y *= -1;
+		this.d = 3;
+		this.r = this.d / 2;
 	}
 	update() {
-		if (this.x + this.r > width || this.x - this.r < 0) {
+		if (this.y + this.r > height) {
+			gameOver = true;
+			reason = "ball touch the bottom";
+		}
+		if (this.x + this.d * 2 > width || this.x - this.d * 2 < 0) {
 			this.dir.x *= -1;
 		}
-		if (this.y + this.r > height || this.y - this.r < 0) {
+		if (this.y - this.d * 2 < 0) {
 			this.dir.y *= -1;
 		}
 		this.x += this.dir.x;
 		this.y += this.dir.y;
 		push();
-		stroke(255);
+		stroke(this.color);
 		strokeWeight(10);
 		noFill();
-		circle(this.x, this.y, this.r / 2);
+		circle(this.x, this.y, this.d);
 		pop();
+	}
+	bulletCollide(bullet) {
+		if (!bullet.fire) return;
+		let DeltaX = this.x - max(bullet.x, min(this.x, bullet.x + bullet.w));
+		let DeltaY = this.y - max(bullet.y, min(this.y, bullet.y + bullet.h));
+		let result = DeltaX * DeltaX + DeltaY * DeltaY < (this.d / 2) * (this.d / 2);
+		if (result) console.log("ball collide with bullet, spawning new");
+		return result;
+	}
+	paddleCollide(paddle) {
+		if (this.y + this.r < height - paddle.h) {
+			return;
+		}
+		if (this.x + this.d > paddle.x && this.x - this.d < paddle.x + paddle.w) {
+			this.dir.y = -abs(this.dir.y);
+		}
+	}
+	bombCollide(bomb) {
+		if (dist(this.x, this.y, bomb.x, bomb.y) < this.d / 2 + bomb.d / 2) {
+			bomb.dropped = 0;
+			console.log("ball collide with bomb");
+		}
 	}
 }
 
@@ -43,31 +72,42 @@ class invaderObj {
 			this.x += globalInvDir; // restore its position
 			// now bring all invaders down a bit
 			lowerAllInvaders();
+			if (this.y > 340) {
+				gameOver = true;
+				reason = "invaders touch the bottom";
+			}
 		}
 	}
 }
 class gunObj {
 	constructor(x) {
 		this.x = x;
+		this.y = 390;
+		this.w = 20;
+		this.h = 20;
+		this.clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 	}
 	draw() {
 		fill(255, 0, 0);
-		rect(this.x - 10, 390, 20, 20);
+		rect(this.x - 10, this.y, this.w, this.h);
 		rect(this.x - 2, 380, 4, 20);
 	}
 	move() {
 		this.x += (keyArray[RIGHT_ARROW] === 1) - (keyArray[LEFT_ARROW] === 1);
+		this.x = this.clamp(this.x, 10, 390);
 	}
 }
 class bulletObj {
 	constructor() {
 		this.x = 0;
 		this.y = 0;
+		this.w = 2;
+		this.h = 6;
 		this.fire = 0;
 	}
 	draw() {
 		fill(255, 0, 0);
-		ellipse(this.x, this.y, 2, 6);
+		ellipse(this.x, this.y, this.w, this.h);
 		this.y -= 5;
 		if (this.y < 0) {
 			this.fire = 0;
@@ -75,6 +115,7 @@ class bulletObj {
 		for (var i = 0; i < invaders.length; i++) {
 			if (invaders[i].dead === 0 && dist(this.x, this.y, invaders[i].x, invaders[i].y) < 6) {
 				invaders[i].dead = 1;
+				deadCount++;
 				this.fire = 0;
 			}
 		}
@@ -84,23 +125,26 @@ class bombObj {
 	constructor() {
 		this.x = 0;
 		this.y = 0;
+		this.d = 3;
 		this.dropped = 0;
 	}
 	draw() {
 		fill(43, 21, 21);
-		ellipse(this.x, this.y, 3, 3);
+		circle(this.x, this.y, this.d);
 		this.y++;
 		if (this.y > 400) {
 			this.dropped = 0;
 		}
 		if (this.y > 390) {
 			if (this.x > gun.x - 10 && this.x < gun.x + 10) {
-				gameOver = 1;
+				gameOver = true;
+				reason = "invaders touch the bottom";
 			}
 		}
 	}
 }
 var gameOver = false;
+var gameWin = false;
 var gun;
 var invaders = [];
 var globalInvDir = 1;
@@ -112,12 +156,14 @@ var initialScreenVar;
 var currFrameCount = 0;
 var spritesheet;
 var ballin;
+var deadCount = 0;
+var reason = "";
 
-var lowerAllInvaders = function () {
+function lowerAllInvaders() {
 	for (var i = 0; i < invaders.length; i++) {
 		invaders[i].y += 5;
 	}
-};
+}
 function keyPressed() {
 	keyArray[keyCode] = 1;
 	initialScreenVar.wait = false;
@@ -167,34 +213,50 @@ function draw() {
 		return;
 	}
 	background(0, 255, 217);
-	ballin.update();
-	if (gameOver === false) {
-		for (var i = 0; i < invaders.length; i++) {
-			if (invaders[i].dead === 0) {
-				invaders[i].draw();
-				invaders[i].move();
-				if (bombs[i].dropped === 1) {
-					bombs[i].draw();
-				} else {
-					if (random(0, 10000) < 2) {
-						bombs[i].dropped = 1;
-						bombs[i].x = invaders[i].x;
-						bombs[i].y = invaders[i].y + 5;
-					}
-				}
-			}
-		}
-		gun.draw();
-		gun.move();
-		checkFire();
-		for (i = 0; i < 5; i++) {
-			if (bullets[i].fire === 1) {
-				bullets[i].draw();
-			}
-		}
-	} else {
+	if (gameOver) {
+		background(0);
 		fill(255, 0, 0);
 		textSize(40);
 		text("Game Over", 100, 200);
+		return;
+	}
+	if (gameWin) {
+		background(0, 255, 0);
+		fill(255, 0, 0);
+		textSize(40);
+		text("You Win!", 100, 200);
+		return;
+	}
+	gameWin = deadCount === invaders.length;
+	ballin.update();
+	for (var i = 0; i < invaders.length; i++) {
+		if (invaders[i].dead === 0) {
+			invaders[i].draw();
+			invaders[i].move();
+			if (bombs[i].dropped === 1) {
+				bombs[i].draw();
+				ballin.bombCollide(bombs[i]);
+			} else {
+				if (random(0, 10000) < 2) {
+					bombs[i].dropped = 1;
+					bombs[i].x = invaders[i].x;
+					bombs[i].y = invaders[i].y + 5;
+				}
+			}
+		}
+	}
+	gun.draw();
+	gun.move();
+	ballin.paddleCollide(gun);
+	checkFire();
+	for (i = 0; i < 5; i++) {
+		if (bullets[i].fire === 1) {
+			bullets[i].draw();
+		}
+	}
+	for (let i = 0; i < bullets.length; i++) {
+		if (ballin.bulletCollide(bullets[i])) {
+			ballin = new ball();
+		}
 	}
 }
