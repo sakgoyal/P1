@@ -303,7 +303,7 @@ function draw() {
 		text("You Win!", 100, 200);
 		return;
 	}
-	gameWin = deadCount =  =  = invaders.length;  // if all invaders are dead then the game is won
+	gameWin = deadCount == invaders.length; // if all invaders are dead then the game is won
 	ballin.update(); // update the ball position and direction
 	for (var i = 0; i < invaders.length; i++) {
 		if (invaders[i].dead === 0) {
@@ -318,9 +318,9 @@ function draw() {
 				// if the bomb is not dropped
 				if (random(0, 10000) < 2) {
 					// 0.02% chance of dropping the bomb per frame
-					bombs[i].dropped = 1;                  // drop the bomb
-					bombs[i].x       = invaders[i].x;      // set the bomb x position to the invader x position
-					bombs[i].y       = invaders[i].y + 5;  // set the bomb y position to the invader y position
+					bombs[i].dropped = 1; // drop the bomb
+					bombs[i].x = invaders[i].x; // set the bomb x position to the invader x position
+					bombs[i].y = invaders[i].y + 5; // set the bomb y position to the invader y position
 				}
 			}
 			ballin.invaderCollide(invaders[i]); // check if the ball collides with the invader
@@ -341,7 +341,7 @@ function draw() {
 		// check if the bullets collide with the invader
 		if (ballin.bulletCollide(bullets[i])) {
 			// if the bullet collides with the invader
-			ballin = new ball();  // create a new ball
+			ballin = new ball(); // create a new ball
 		}
 	}
 }
